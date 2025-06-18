@@ -74,4 +74,4 @@ function resetMap() {
     lines = [];
 }
 </script>
-@endpush
+

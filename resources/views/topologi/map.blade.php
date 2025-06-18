@@ -27,14 +27,15 @@
             <input type="number" id="cable-length" class="form-control form-control-sm" value="50">
         </div>
         <div class="mb-2">
-            <label>Jumlah Konektor</label>
+            <label>Total Connector</label>
             <input type="number" id="connectors" class="form-control form-control-sm" value="2">
         </div>
         <div class="mb-2">
-            <label>Jumlah Splicing</label>
+            <label>Total Splicing (0,1dB)</label>
             <input type="number" id="splicing" class="form-control form-control-sm" value="1">
         </div>
         <button class="btn btn-sm btn-secondary mb-2 w-100" onclick="connectNodes()">Sambungkan Node</button>
+        <button class="btn btn-sm btn-danger mb-2 w-100" onclick="undoAction()">↩ Undo</button>
         <button class="btn btn-sm btn-warning mb-2 w-100" onclick="resetMap()">Reset</button>
         <button class="btn btn-sm btn-success w-100" onclick="saveTopology()">Hitung Loss</button>
     </div>
@@ -62,13 +63,15 @@
         connections = [],
         lines = [],
         nodeId = 0,
-        selectedNode = null;
+        selectedNode = null,
+        historyStack = [];
+
+    const cableLossPerMeter = 0.003; // default redaman kabel per meter
 
     function makeDraggable(el) {
         let offsetX = 0,
             offsetY = 0,
             isDragging = false;
-
         el.addEventListener('mousedown', function(e) {
             isDragging = true;
             offsetX = e.clientX - el.getBoundingClientRect().left;
@@ -85,14 +88,13 @@
             let x = e.clientX - rect.left - offsetX;
             let y = e.clientY - rect.top - offsetY;
 
-            // Batas agar tidak keluar area
             x = Math.max(0, Math.min(x, map.offsetWidth - el.offsetWidth));
             y = Math.max(0, Math.min(y, map.offsetHeight - el.offsetHeight));
 
             el.style.left = `${x}px`;
             el.style.top = `${y}px`;
 
-            lines.forEach(line => line.position());
+            lines.forEach(line => line.position && line.position());
         }
 
         function onMouseUp() {
@@ -105,19 +107,17 @@
     function addNode(type) {
         const el = document.createElement("div");
         el.classList.add("position-absolute", "p-2", "bg-white", "border", "rounded", "text-center");
-        el.style.top = "50px";
-        el.style.left = "50px";
-        el.setAttribute("id", "node-" + nodeId);
-        el.dataset.type = type;
+        el.style.top = "100px";
+        el.style.left = "100px";
+        el.setAttribute("id", `node-${nodeId}`);
+        el.innerHTML = `<strong>${type}</strong><div class="output-power" style="font-size: 12px; color: green;"></div>`;
 
         let label = type;
         let loss = 0;
-
         if (type === 'Splitter') {
             const splitterType = prompt("Masukkan tipe Splitter (contoh: 1:2, 1:4, 1:8, 1:16, 1:32, 1:64)");
             label = `Splitter ${splitterType}`;
             el.dataset.splitter = splitterType;
-
             const splitterLosses = {
                 '1:2': 3.5,
                 '1:4': 7.2,
@@ -134,15 +134,19 @@
             loss = odpType.toLowerCase() === 'besar' ? 0.5 : 0.2;
         }
 
-        el.innerText = label;
+        el.innerHTML = `<strong>${label}</strong><div class="output-power" style="font-size: 12px; color: green;"></div>`;
         el.dataset.loss = loss;
+        el.dataset.power = "";
 
         el.addEventListener('click', () => {
             if (!selectedNode) {
                 selectedNode = el;
                 el.classList.add('border-primary');
             } else if (selectedNode !== el) {
-                connectNodeElements(selectedNode, el);
+                const length = parseFloat(prompt("Masukkan panjang kabel (meter):"));
+                if (!isNaN(length)) {
+                    connectNodeElements(selectedNode, el, length);
+                }
                 selectedNode.classList.remove('border-primary');
                 selectedNode = null;
             } else {
@@ -153,155 +157,59 @@
 
         makeDraggable(el);
         document.getElementById("map-canvas").appendChild(el);
-
         nodes.push({
             id: nodeId,
-            type: type,
-            el: el,
-            label: label,
-            loss: loss
+            type,
+            el,
+            label,
+            loss,
+            power: null
         });
-
         nodeId++;
     }
 
-    function connectNodeElements(source, target) {
+    function connectNodeElements(source, target, length) {
+        const lossCable = length * cableLossPerMeter;
+        const lossTarget = parseFloat(target.dataset.loss || 0);
+        const sourcePower = parseFloat(source.dataset.power || document.getElementById("input-power").value || 0);
+        const powerRx = sourcePower - lossCable - lossTarget;
+        target.dataset.power = powerRx.toFixed(2);
+        target.querySelector(".output-power").innerText = `${powerRx.toFixed(2)} dB`;
+
         const line = new LeaderLine(source, target, {
             color: 'blue',
-            size: 2
+            size: 2,
+            path: 'fluid',
+            startPlug: 'disc',
+            endPlug: 'arrow',
+            middleLabel: LeaderLine.pathLabel(`-${lossCable.toFixed(2)} dB`, {
+                color: 'red',
+                fontSize: '12px'
+            })
         });
-        lines.push(line);
-        connections.push({
+
+        const connection = {
             from: parseInt(source.id.replace('node-', '')),
-            to: parseInt(target.id.replace('node-', ''))
-        });
-    }
+            to: parseInt(target.id.replace('node-', '')),
+            length,
+            lossCable,
+            line
+        };
 
-    function saveTopology() {
-        const powerInput = parseFloat(document.getElementById("input-power").value);
-        const cableLength = parseFloat(document.getElementById("cable-length").value);
-        const cableLoss = parseFloat(document.getElementById("cable-type").value);
-        const connectorCount = parseInt(document.getElementById("connectors").value);
-        const spliceCount = parseInt(document.getElementById("splicing").value);
-
-        let totalLoss = 0;
-        let jalur = [];
-
-        for (const node of nodes) {
-            const loss = parseFloat(node.el.dataset.loss || 0);
-            if (node.type !== 'OLT') jalur.push(node.label);
-            totalLoss += loss;
-        }
-
-        totalLoss += cableLoss * (cableLength / 1000);
-        totalLoss += connectorCount * 0.02;
-        totalLoss += spliceCount * 0.01;
-
-        const powerRx = powerInput - totalLoss;
-
-        document.getElementById("total-loss").innerText = totalLoss.toFixed(2);
-        document.getElementById("power-rx").innerText = powerRx.toFixed(2);
-        document.getElementById("jalur-text").innerText = 'OLT → ' + jalur.join(" → ");
-        document.getElementById("info-card").classList.remove("d-none");
-    }
-
-    function resetMap() {
-        document.getElementById("map-canvas").innerHTML = "";
-        document.getElementById("info-card").classList.add("d-none");
-        nodes = [];
-        connections = [];
-        lines.forEach(line => line.remove());
-        lines = [];
-        selectedNode = null;
-        nodeId = 0;
-    }
-
-    function exportTopology() {
-        const data = {
-            nodes: nodes.map(n => ({
-                id: n.id,
-                type: n.type,
-                label: n.label,
-                loss: n.loss,
-                position: {
-                    top: n.el.style.top,
-                    left: n.el.style.left
+        line.path.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (confirm("Hapus koneksi ini?")) {
+                line.remove();
+                const idx = lines.indexOf(line);
+                if (idx !== -1) {
+                    lines.splice(idx, 1);
+                    connections.splice(idx, 1);
                 }
-            })),
-            connections: connections
-        };
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], {
-            type: 'application/json'
+            }
         });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'topologi-ftth.json';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
 
-    function importTopology() {
-        document.getElementById('json-file').click();
-    }
-
-    function loadJsonFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = JSON.parse(e.target.result);
-            resetMap();
-
-            data.nodes.forEach(n => {
-                const el = document.createElement("div");
-                el.classList.add("position-absolute", "p-2", "bg-white", "border", "rounded", "text-center");
-                el.style.top = n.position.top;
-                el.style.left = n.position.left;
-                el.setAttribute("id", "node-" + n.id);
-                el.dataset.type = n.type;
-                el.dataset.loss = n.loss;
-                el.innerText = n.label;
-
-                el.addEventListener('click', () => {
-                    if (!selectedNode) {
-                        selectedNode = el;
-                        el.classList.add('border-primary');
-                    } else if (selectedNode !== el) {
-                        connectNodeElements(selectedNode, el);
-                        selectedNode.classList.remove('border-primary');
-                        selectedNode = null;
-                    } else {
-                        selectedNode.classList.remove('border-primary');
-                        selectedNode = null;
-                    }
-                });
-
-                makeDraggable(el);
-                document.getElementById("map-canvas").appendChild(el);
-                nodes.push({
-                    id: n.id,
-                    type: n.type,
-                    el: el,
-                    label: n.label,
-                    loss: n.loss
-                });
-                nodeId = Math.max(nodeId, n.id + 1);
-            });
-
-            setTimeout(() => {
-                data.connections.forEach(conn => {
-                    const fromEl = document.getElementById("node-" + conn.from);
-                    const toEl = document.getElementById("node-" + conn.to);
-                    if (fromEl && toEl) {
-                        connectNodeElements(fromEl, toEl);
-                    }
-                });
-            }, 200);
-        };
-        reader.readAsText(file);
+        lines.push(line);
+        connections.push(connection);
     }
 </script>
 @endpush
