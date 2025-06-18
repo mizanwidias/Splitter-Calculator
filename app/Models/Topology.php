@@ -6,11 +6,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class Topology extends Model
 {
-    protected $fillable = ['nodes', 'connections', 'power'];
+    protected $table = 'topologies';
+
+    protected $fillable = [
+        'id',
+        'lab_id',
+        'nama',
+        'deskripsi',
+        'nodes',
+        'connections',
+    ];
 
     protected $casts = [
         'nodes' => 'array',
         'connections' => 'array',
-        'power' => 'float',
     ];
+
+    // Topology.php
+    public function nodes()
+    {
+        return $this->hasMany(Node::class);
+    }
 }

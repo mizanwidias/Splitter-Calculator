@@ -5,7 +5,7 @@
 @section('content')
 <!-- Sidebar -->
 <div id="sidebar">
-    
+
     <div class="inner">
         <h5>Lab: {{ $lab['nama'] }}</h5>
         <p><small>{{ $lab['deskripsi'] }}</small></p>
@@ -47,6 +47,8 @@
             <button class="btn btn-sm btn-warning w-50 mb-1" onclick="resetMap()">Reset</button>
             <button class="btn btn-sm btn-danger w-50 mb-1" onclick="undoAction()">↩ Undo</button>
         </div>
+        <hr>
+        <a href="/lab" class="btn btn-sm btn-secondary w-100">🚪 Keluar</a>
 
     </div>
 </div>
@@ -358,28 +360,56 @@
         document.getElementById("info-card").classList.add("d-none");
     }
 
-    async function submitTopology(topology) {
+    const labId = "{{ $lab['id'] }}";
+
+    async function saveTopology(topology, customUrl = null) {
         const {
             nodes,
             connections
         } = topology;
         const power = parseFloat(document.getElementById('input-power').value || 0);
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const payload = {
+            nama: "{{ $lab['nama'] }}",
+            deskripsi: "{{ $lab['deskripsi'] }}",
+            nodes,
+            connections,
+            power
+        };
 
         try {
-            const response = await fetch('/topologi/save', {
+            fetch(`/topologi/save/1`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 },
-                credentials: 'same-origin',
                 body: JSON.stringify({
-                    nodes,
-                    connections,
-                    power
+                    nama: "Simulasi FTTH A",
+                    deskripsi: "Simulasi dari OLT ke ONT rumah A",
+                    power: 15,
+                    nodes: [{
+                            id: 'OLT1',
+                            type: 'OLT',
+                            name: 'OLT Pusat',
+                            x: 100,
+                            y: 200
+                        },
+                        {
+                            id: 'ONT1',
+                            type: 'ONT',
+                            name: 'Rumah A',
+                            x: 300,
+                            y: 350
+                        }
+                    ],
+                    connections: [{
+                        from: 'OLT1',
+                        to: 'ONT1',
+                        length: 120,
+                        fiberType: 'G652',
+                        loss: 2.4
+                    }]
                 })
             });
 
@@ -412,20 +442,31 @@
         }
     }
 
-    function loadTopology() {
-        fetch('/topologi/load')
-            .then(response => response.json())
+    function loadTopology(id) {
+        fetch(`/topologi/load/${id}`)
+            .then(res => res.json())
             .then(data => {
-                nodes = data.nodes || [];
-                connections = data.connections || [];
+                if (!data.nodes || !data.connections) return;
 
-                // Render ulang node dan koneksi (kamu sesuaikan bagian ini)
-                renderTopology();
-            })
-            .catch(error => {
-                console.error('Gagal load data topologi:', error);
+                // Clear canvas dulu
+                resetMap();
+
+                // Tambahkan node dari data DB
+                data.nodes.forEach(node => {
+                    addNodeFromDB(node); // fungsi ini perlu kamu buat
+                });
+
+                // Tambahkan koneksi dari DB
+                data.connections.forEach(conn => {
+                    drawConnectionFromDB(conn); // fungsi ini juga perlu kamu sesuaikan
+                });
+
+                // Update Power dan total loss
+                document.getElementById('input-power').value = data.power || 0;
+                updateLossCalculation(); // fungsi ini sesuai punyamu
             });
     }
+
 
     function saveTopology() {
         const topology = {
@@ -462,19 +503,22 @@
         submitTopology(topology);
     }
 
+
     async function submitTopology(topology) {
         const {
             nodes,
             connections
         } = topology;
         const power = parseFloat(document.getElementById('input-power').value || 0);
+        const labId = "{{ $lab['id'] }}"; // ambil dari Blade
 
         try {
-            const response = await fetch('/topologi/save', {
+            const response = await fetch(`/topologi/save/${labId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify({
                     nodes,
@@ -495,8 +539,16 @@
             Swal.fire('Gagal', 'Terjadi kesalahan saat menyimpan.', 'error');
         }
     }
+
     window.onload = function() {
         loadTopology();
     };
+
+    window.onbeforeunload = function() {
+    if (isTopologyChanged) {
+        return "Perubahan Anda belum disimpan. Yakin ingin keluar?";
+    }
+};
+
 </script>
 @endpush

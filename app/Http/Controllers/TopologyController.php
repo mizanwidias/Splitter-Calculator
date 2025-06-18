@@ -44,38 +44,43 @@ class TopologyController extends Controller
     //     }
     // }
 
-    public function save(Request $request)
+    public function save(Request $request, $id)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'nodes' => 'required|array',
             'connections' => 'required|array',
-            'power' => 'nullable|numeric'
+            'power' => 'nullable|numeric',
+            'nama' => 'nullable|string',
+            'deskripsi' => 'nullable|string',
         ]);
-        
-        $topologi = new Topology();
-        $topologi->nodes = json_encode($validated['nodes']);
-        $topologi->connections = json_encode($validated['connections']);
-        $topologi->power = $validated['power'] ?? 0; // kalau ada kolom power
-        $topologi->save();
-        
-        return response()->json(['success' => true, 'message' => 'Topologi disimpan']);
-        \Illuminate\Support\Facades\Log::info('Session ID: ' . session()->getId());
-        \Illuminate\Support\Facades\Log::info('Session Token: ' . session()->token());
-        \Illuminate\Support\Facades\Log::info('Header Token: ' . $request->header('X-CSRF-TOKEN'));
-        
+
+        // Simpan ke DB, update jika sudah ada
+        $topo = Topology::updateOrCreate(
+            ['lab_id' => $id],
+            [
+                'nodes' => $data['nodes'],
+                'connections' => $data['connections'],
+                'power' => $data['power'] ?? null,
+                'nama' => $data['nama'] ?? null,
+                'deskripsi' => $data['deskripsi'] ?? null,
+            ]
+        );
+
+        return response()->json(['success' => true, 'message' => 'Topologi berhasil disimpan']);
     }
 
-
-    public function load()
+    public function load($id)
     {
-        $topologi = Topology::latest()->first(); // atau sesuaikan logicnya
-        if (!$topologi) {
+        $topo = Topology::where('lab_id', $id)->first();
+
+        if (!$topo) {
             return response()->json(['nodes' => [], 'connections' => []]);
         }
 
         return response()->json([
-            'nodes' => json_decode($topologi->nodes, true),
-            'connections' => json_decode($topologi->connections, true)
+            'nodes' => $topo->nodes,
+            'connections' => $topo->connections,
+            'power' => $topo->power,
         ]);
     }
 }

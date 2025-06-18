@@ -9,13 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('topologies', function (Blueprint $table) {
+        Schema::create('labs', function (Blueprint $table) {
             $table->id();
-            $table->json('nodes');
-            $table->json('connections');
-            $table->float('power')->default(0);
+            $table->string('nama');
+            $table->text('deskripsi')->nullable();
+            $table->string('author')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('topologies');
+        Schema::dropIfExists('labs');
     }
 };
