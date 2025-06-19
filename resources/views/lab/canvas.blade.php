@@ -54,9 +54,9 @@
         <input type="number" id="splicing" class="form-control form-control-sm mb-2" value="1">
 
         <div class="">
-            <button class="btn btn-sm btn-success w-50 mb-1" onclick="saveTopology()">💾 Simpan Topologi</button>
-            <button class="btn btn-sm btn-warning w-50 mb-1" onclick="resetMap()">Reset</button>
-            <button class="btn btn-sm btn-danger w-50 mb-1" onclick="undoAction()">↩ Undo</button>
+            <button class="btn btn-sm btn-success w-100 mb-1" onclick="saveTopology()">💾 Simpan Topologi</button>
+            <button class="btn btn-sm btn-warning w-100 mb-1" onclick="resetMap()">Reset</button>
+            <button class="btn btn-sm btn-danger w-100 mb-1" onclick="undoAction()">↩ Undo</button>
         </div>
         <hr>
         <a href="/lab" class="btn btn-sm btn-secondary w-100">🚪 Keluar</a>
