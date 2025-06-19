@@ -4,8 +4,8 @@
 
 @section('content')
 <!-- sidebar -->
-<div id="sidebar" class="position-fixed" style="top: 0; bottom: 0; left: 0; width: 250px; overflow-y: auto; z-index: 1030;">
-    <div class="inner p-3" style="min-height: 100%; color: white;">
+<div id="sidebar" class="position-fixed sidebar-hidden">
+    <div class="inner p-3" >
         <!-- konten sidebar -->
         <h5>Lab: {{ $lab['nama'] }}</h5>
         <p><small>{{ $lab['deskripsi'] }}</small></p>

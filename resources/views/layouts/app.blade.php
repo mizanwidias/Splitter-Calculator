@@ -33,28 +33,37 @@
     }
 
     #sidebar {
-      position: absolute;
-      left: 0;
       top: 0;
       bottom: 0;
-      width: 50px;
-      background: #0d6efd;
-      transition: width 0.3s;
-      z-index: 1000;
+      left: 0;
+      width: 250px;
+      overflow-y: auto;
+      background-color: #1a1a1a;
+      /* warna background sidebar */
+      color: white;
+      transition: transform 0.3s ease;
+      z-index: 1030;
+    }
+
+    .sidebar-hidden {
+      transform: translateX(-220px);
+      /* hanya sisakan 30px agar hover masih bisa kena */
     }
 
     #sidebar:hover {
-      width: 300px;
+      transform: translateX(0);
     }
 
-    #sidebar .inner {
-      display: none;
-      padding: 15px;
-      color: white;
-    }
-
-    #sidebar:hover .inner {
-      display: block;
+    /* Tambahan agar area hover tetap bisa disentuh */
+    #sidebar::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 30px;
+      /* area hover yang kecil */
+      height: 100vh;
+      z-index: 1029;
     }
 
     #map-canvas {
