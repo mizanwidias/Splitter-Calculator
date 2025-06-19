@@ -24,22 +24,25 @@
       border: 2px solid blue;
     }
 
+    /* Biarkan halaman bisa discroll jika tinggi lebih dari viewport */
     body,
     html {
       margin: 0;
       padding: 0;
       height: 100%;
-      overflow: hidden;
+      overflow-x: hidden;
+      /* biar scroll horizontal tidak muncul */
     }
 
+    /* ===== SIDEBAR (auto-hide & scrollable) ===== */
     #sidebar {
+      position: fixed;
       top: 0;
       bottom: 0;
       left: 0;
       width: 250px;
       overflow-y: auto;
-      background-color: #1a1a1a;
-      /* warna background sidebar */
+      background-color: blue;
       color: white;
       transition: transform 0.3s ease;
       z-index: 1030;
@@ -47,51 +50,37 @@
 
     .sidebar-hidden {
       transform: translateX(-220px);
-      /* hanya sisakan 30px agar hover masih bisa kena */
+      /* sisakan hover area */
     }
 
     #sidebar:hover {
       transform: translateX(0);
     }
 
-    /* Tambahan agar area hover tetap bisa disentuh */
+    /* Hover trigger area */
     #sidebar::before {
       content: "";
       position: fixed;
       top: 0;
       left: 0;
       width: 30px;
-      /* area hover yang kecil */
       height: 100vh;
       z-index: 1029;
     }
 
+    /* ===== MAIN AREA ===== */
     #map-canvas {
       position: absolute;
       top: 0;
-      left: 50px;
+      left: 30px;
+      /* karena sidebar sembunyi sisakan 30px */
       right: 0;
       bottom: 0;
       background-color: #f4faff;
       z-index: 0;
     }
 
-    #info-panel {
-      position: fixed;
-      right: 15px;
-      top: 15px;
-      width: 280px;
-      z-index: 1100;
-    }
-
-    #info-card {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 300px;
-      z-index: 1050;
-    }
-
+    /* ===== STATUS TABEL ===== */
     #status-table-box {
       position: fixed;
       top: 20px;
@@ -100,9 +89,20 @@
       z-index: 1040;
     }
 
+    /* ===== INFO CARD (selalu tampil di bawah tabel) ===== */
+    #info-card {
+      position: fixed;
+      top: 240px;
+      /* pastikan tidak menumpuk dengan status-table */
+      right: 20px;
+      width: 300px;
+      z-index: 1050;
+    }
+
+    /* Responsive kecil */
     @media (max-height: 700px) {
       #info-card {
-        bottom: 10px;
+        top: 200px;
       }
 
       #status-table-box {
