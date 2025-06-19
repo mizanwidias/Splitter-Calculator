@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Splitter Calculator - @yield('title')</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
   </head>
   <style>
@@ -76,11 +77,38 @@
 
     #info-card {
       position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      z-index: 1050;
+    }
+
+    #status-table-box {
+      position: fixed;
       top: 20px;
       right: 20px;
-      width: 250px;
-      z-index: 1000;
-      background-color: white;
+      width: 300px;
+      z-index: 1040;
+    }
+
+    @media (max-height: 700px) {
+      #info-card {
+        bottom: 10px;
+      }
+
+      #status-table-box {
+        top: 10px;
+      }
+    }
+
+    @media (max-width: 768px) {
+
+      #info-card,
+      #status-table-box {
+        position: static;
+        width: 100%;
+        margin-bottom: 10px;
+      }
     }
   </style>
 
