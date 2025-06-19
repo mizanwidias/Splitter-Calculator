@@ -58,29 +58,32 @@ class TopologyController extends Controller
         $topo = Topology::updateOrCreate(
             ['lab_id' => $id],
             [
-                'nodes' => $data['nodes'],
-                'connections' => $data['connections'],
+                'nodes' => json_encode($data['nodes']),
+                'connections' => json_encode($data['connections']),
                 'power' => $data['power'] ?? null,
                 'nama' => $data['nama'] ?? null,
                 'deskripsi' => $data['deskripsi'] ?? null,
             ]
-        );
+        );          
 
         return response()->json(['success' => true, 'message' => 'Topologi berhasil disimpan']);
     }
 
-    public function load($id)
+    public function load($lab_id)
     {
-        $topo = Topology::where('lab_id', $id)->first();
+        $topology = Topology::where('lab_id', $lab_id)->latest()->first();
 
-        if (!$topo) {
-            return response()->json(['nodes' => [], 'connections' => []]);
+        if (!$topology) {
+            return response()->json([
+                'nodes' => [],
+                'connections' => [],
+            ]);
         }
 
         return response()->json([
-            'nodes' => $topo->nodes,
-            'connections' => $topo->connections,
-            'power' => $topo->power,
+            'nodes' => $topology->nodes,
+            'connections' => $topology->connections,
+            'power' => $topology->power,
         ]);
     }
 }

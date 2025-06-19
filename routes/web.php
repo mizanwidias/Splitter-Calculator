@@ -36,5 +36,5 @@ Route::get('/lab', [LabController::class, 'index'])->name('lab.index');
 Route::post('/lab', [LabController::class, 'store'])->name('lab.store');
 Route::get('/lab/{lab}/topologi', [LabController::class, 'topologi'])->name('lab.canvas');
 // Route::resource('topologi', [TopologyController::class]);
-Route::post('/topologi/save/{$id}', [TopologyController::class, 'save']);
-Route::get('/topologi/load/{$id}', [TopologyController::class, 'load']);
+Route::post('/topologi/save/{id}', [TopologyController::class, 'save']);
+Route::get('/topologi/load/{id}', [TopologyController::class, 'load']);
